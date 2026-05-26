@@ -5,8 +5,9 @@ obj/
 *.suo
 .vs/
 
-# Test data (local only)
+# Test data and publish output (local only)
 test/
+publish/
 
 # Logs produced at runtime
 logs/
