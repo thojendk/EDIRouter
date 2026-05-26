@@ -1,0 +1,13 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Test data (local only)
+test/
+
+# Logs produced at runtime
+logs/
+*.log
