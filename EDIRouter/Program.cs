@@ -1,4 +1,4 @@
-using EDIRouter;
+﻿using EDIRouter;
 
 var positional = new List<string>();
 string? splitQualifier = null;   // NAD party qualifier to route by; null = no split
@@ -6,17 +6,23 @@ string? argError = null;
 
 foreach (string arg in args)
 {
-    if (arg == "--split")
+    if (arg.Equals("--split", StringComparison.OrdinalIgnoreCase))
     {
         splitQualifier = "SU";
     }
-    else if (arg.StartsWith("--split=", StringComparison.Ordinal))
+    else if (arg.StartsWith("--split=", StringComparison.OrdinalIgnoreCase))
     {
         string value = arg["--split=".Length..].Trim().ToUpperInvariant();
         if (value.Length is < 1 or > 3 || !value.All(char.IsAsciiLetterOrDigit))
-            argError = $"Invalid NAD qualifier in '{arg}'. Expected 1-3 alphanumeric characters, e.g. --split=SU or --split=BY.";
+            argError ??= $"Invalid NAD qualifier in '{arg}'. Expected 1-3 alphanumeric characters, e.g. --split=SU or --split=BY.";
         else
             splitQualifier = value;
+    }
+    else if (arg.StartsWith('-') || arg.StartsWith('/'))
+    {
+        // Never ignore something that was meant as an option - a misspelled
+        // flag used to be silently swallowed as a surplus path.
+        argError ??= $"Unknown option '{arg}'. Expected --split or --split=<nad>.";
     }
     else
     {
@@ -47,6 +53,12 @@ if (positional.Count < 2)
     Console.WriteLine("Files are moved to: <output-folder>\\<recipient>\\<test|prod>\\");
     Console.WriteLine("With --split:       <output-folder>\\<recipient>\\<test|prod>\\<gln>\\");
     return 1;
+}
+
+if (positional.Count > 2)
+{
+    Console.Error.WriteLine($"Error: Unexpected argument '{positional[2]}'. Expected exactly two folders; quote paths containing spaces.");
+    return 2;
 }
 
 string inputPath = positional[0];
