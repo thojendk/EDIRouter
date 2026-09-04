@@ -1,0 +1,51 @@
+<Project>
+
+  <!--
+    Authenticode signing of the published executable.
+
+    Reusable across solutions: copy the whole Sign folder into another repo and add one line to
+    the project's csproj (path relative to that csproj):
+
+        <Import Project="..\Sign\Sign.targets" />
+
+    The script location is resolved from this file's own directory, so no path fixing is needed
+    whatever the folder layout. The certificate is not copied with the folder - it lives in the
+    Windows certificate store (CurrentUser\My) and is looked up by the thumbprint baked into
+    SignExe.ps1.
+
+    Properties:
+      SignAfterPublish  true (default) to sign after Publish; false to skip.
+      SignScript        path to SignExe.ps1; defaults to the copy beside this file.
+      PowerShellExe     shell used to run the script; defaults to Windows PowerShell.
+  -->
+
+  <PropertyGroup>
+    <SignAfterPublish Condition="'$(SignAfterPublish)' == ''">true</SignAfterPublish>
+    <SignScript Condition="'$(SignScript)' == ''">$(MSBuildThisFileDirectory)SignExe.ps1</SignScript>
+    <PowerShellExe Condition="'$(PowerShellExe)' == ''">powershell</PowerShellExe>
+  </PropertyGroup>
+
+  <Target Name="SignPublishedExe"
+          AfterTargets="Publish"
+          Condition="'$(SignAfterPublish)' == 'true' And '$(OS)' == 'Windows_NT'">
+
+    <PropertyGroup>
+      <_PublishedExe>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)','$(PublishDir)$(AssemblyName).exe'))</_PublishedExe>
+      <_PublishedExe>$([System.IO.Path]::GetFullPath('$(_PublishedExe)'))</_PublishedExe>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(SignScript)')"
+           Text="Signing script not found: $(SignScript). Restore the Sign folder, or publish with -p:SignAfterPublish=false." />
+    <Error Condition="!Exists('$(_PublishedExe)')"
+           Text="Published executable not found: $(_PublishedExe)" />
+
+    <Message Importance="high" Text="Signing $(_PublishedExe)" />
+
+    <!-- PSModulePath is cleared because an inherited one (pwsh -> cmd.exe -> powershell.exe)
+         hides the child host's modules; see the comment in SignExe.ps1. -->
+    <Exec Command="&quot;$(PowerShellExe)&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(SignScript)&quot; -Path &quot;$(_PublishedExe)&quot;"
+          EnvironmentVariables="PSModulePath="
+          ContinueOnError="false" />
+  </Target>
+
+</Project>

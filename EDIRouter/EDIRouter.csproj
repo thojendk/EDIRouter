@@ -11,4 +11,7 @@
     <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
+  <!-- Signs the published exe. See CLAUDE.md; opt out with -p:SignAfterPublish=false -->
+  <Import Project="..\Sign\Sign.targets" />
+
 </Project>
